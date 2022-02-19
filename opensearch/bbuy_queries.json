@@ -44,12 +44,10 @@
         }
       },
       "query_time" : {
-        "type": "date",
-        "format": "yyyy-MM-dd HH:mm:ss.[SSS][SS][S][Z]"
+        "type": "date"
       },
       "click_time" : {
-        "type": "date",
-        "format": "yyyy-MM-dd HH:mm:ss.[SSS][SS][S][Z]"
+        "type": "date"
       }
     }
   },
