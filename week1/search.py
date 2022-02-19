@@ -16,11 +16,15 @@ bp = Blueprint('search', __name__, url_prefix='/search')
 # applied_filters -- return a String that is appropriate for inclusion in a URL as part of a query string.  This is basically the same as the input query string
 def process_filters(filters_input):
     # Filters look like: &filter.name=regularPrice&regularPrice.key={{ agg.key }}&regularPrice.from={{ agg.from }}&regularPrice.to={{ agg.to }}
+    # eg. query=ipad%202&filter.name=regularPrice&regularPrice.type=range&regularPrice.key=Under%20$50&regularPrice.from=&regularPrice.to=50.0&regularPrice.displayName=Price
     filters = []
     display_filters = []  # Also create the text we will use to display the filters that are applied
     applied_filters = ""
     for filter in filters_input:
         type = request.args.get(filter + ".type")
+        name = request.args.get(filter + ".name")
+        from_val = request.args.get(filter + ".from")
+        to_val = request.args.get(filter + ".to")
         display_name = request.args.get(filter + ".displayName", filter)
         #
         # We need to capture and return what filters are already applied so they can be automatically added to any existing links we display in aggregations.jinja2
@@ -50,6 +54,7 @@ def query():
     filters = None
     sort = "_score"
     sortDir = "desc"
+    index_name = "bbuy_products"
     if request.method == 'POST':  # a query has been submitted
         user_query = request.form['query']
         if not user_query:
@@ -74,7 +79,7 @@ def query():
         query_obj = create_query("*", [], sort, sortDir)
 
     print("query obj: {}".format(query_obj))
-    response = None   # TODO: Replace me with an appropriate call to OpenSearch
+    response = opensearch.search(index=index_name, body=query_obj)
     # Postprocess results here if you so desire
 
     #print(response)
@@ -90,11 +95,35 @@ def create_query(user_query, filters, sort="_score", sortDir="desc"):
     print("Query: {} Filters: {} Sort: {}".format(user_query, filters, sort))
     query_obj = {
         'size': 10,
+        "sort": [
+            {sort: sortDir}
+        ],
         "query": {
-            "match_all": {} # Replace me with a query that both searches and filters
+            "bool": {
+                "must": {
+                    'multi_match': {
+                        "query": user_query,
+                        "fields": ["name^100", "shortDescription^50", "longDescription^10", "department"]
+                    }
+                },
+                "filter": filters
+            }
         },
         "aggs": {
-            #TODO: FILL ME IN
+            "regularPrice": {
+                "range": {
+                    "field": "regularPrice",
+                    "ranges": [
+                        {"key": "Under $50", "to": 50},
+                        {"key": "$50 to $100", "from": 50, "to": 100},
+                        {"key": "$100 to $250", "from": 100, "to": 250},
+                        {"key": "Over $250", "from": 250}
+                    ]
+                }   
+            },
+            "missing_images": {
+                "missing": { "field": "image.keyword" }
+            }
         }
     }
     return query_obj
