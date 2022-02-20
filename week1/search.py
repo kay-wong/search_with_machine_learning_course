@@ -105,12 +105,8 @@ def query():
 
 def create_query(user_query, filters, sort="_score", sortDir="desc"):
     print("Query: {} Filters: {} Sort: {}".format(user_query, filters, sort))
-    query_obj = {
-        "size": 10,
-        "sort": [
-            {sort: sortDir}
-        ],
-        "query": {
+
+    base_query = {
             "bool": {
                 "must": {
                     "multi_match": {
@@ -120,8 +116,37 @@ def create_query(user_query, filters, sort="_score", sortDir="desc"):
                 },
                 "filter": filters
             }
-        },
-        "aggs": {
+        }
+    
+    function_score_query = {
+                "function_score": {
+                    "query": base_query,
+                    "score_mode": "avg",
+                    "boost_mode": "multiply",
+                    "functions": [   
+                        {   "field_value_factor": {
+                            "field": "salesRankShortTerm",
+                            "missing": 10000000,
+                            "modifier": "reciprocal"
+                            }
+                        },
+                        {  "field_value_factor": {
+                            "field": "salesRankMediumTerm",
+                            "missing": 10000000,
+                            "modifier": "reciprocal"
+                            }
+                        },
+                        {  "field_value_factor": {
+                            "field": "salesRankLongTerm",
+                            "missing": 10000000,
+                            "modifier": "reciprocal"
+                            }
+                        }
+                    ]
+                }
+            }
+
+    agg_query = {
             "regularPrice": {
                 "range": {
                     "field": "regularPrice",
@@ -136,6 +161,14 @@ def create_query(user_query, filters, sort="_score", sortDir="desc"):
             "missing_images": {
                 "missing": { "field": "image.keyword" }
             }
-        }
+        }    
+
+    query_obj = {
+        "size": 10,
+        "sort": [
+            {sort: sortDir}
+        ],
+        "query": function_score_query,
+        "aggs": agg_query
     }
     return query_obj
