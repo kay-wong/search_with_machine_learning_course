@@ -23,21 +23,33 @@ def process_filters(filters_input):
     for filter in filters_input:
         type = request.args.get(filter + ".type")
         name = request.args.get(filter + ".name")
-        from_val = request.args.get(filter + ".from")
-        to_val = request.args.get(filter + ".to")
-        display_name = request.args.get(filter + ".displayName", filter)
+        filter_from = request.args.get(filter + ".from")
+        filter_to = request.args.get(filter + ".to")
+        filter_key = request.args.get(filter + ".key", None)
+        filter_display_name = request.args.get(filter + ".displayName", filter)
         #
         # We need to capture and return what filters are already applied so they can be automatically added to any existing links we display in aggregations.jinja2
         applied_filters += "&filter.name={}&{}.type={}&{}.displayName={}".format(filter, filter, type, filter,
-                                                                                 display_name)
+                                                                                 filter_display_name)
         #TODO: IMPLEMENT AND SET filters, display_filters and applied_filters.
         # filters get used in create_query below.  display_filters gets used by display_filters.jinja2 and applied_filters gets used by aggregations.jinja2 (and any other links that would execute a search.)
         if type == "range":
-            pass
+            range_filter={"range": {filter: {}}}
+            if filter_from:
+                range_filter['range'][filter]['gte'] = filter_from
+            if filter_to:
+                range_filter['range'][filter]['lt'] = filter_to
+            filters+=[range_filter]
+            
+            display_filters.append(f"Showing results for {filter_display_name} between {filter_from} and {filter_to}")
+            applied_filters+="&{}.key={}&{}.from={}&{}.to={}".format(filter,filter_key,filter,filter_from,filter,filter_to)
         elif type == "terms":
-            pass #TODO: IMPLEMENT
-    print("Filters: {}".format(filters))
+            term_filter = {"term": {filter: filter_key}}
+            filters += [term_filter]
 
+            applied_filters+="&{}.key={}".format(filter,filter_key)
+
+    print("Filters: {}".format(filters))
     return filters, display_filters, applied_filters
 
 
@@ -94,14 +106,14 @@ def query():
 def create_query(user_query, filters, sort="_score", sortDir="desc"):
     print("Query: {} Filters: {} Sort: {}".format(user_query, filters, sort))
     query_obj = {
-        'size': 10,
+        "size": 10,
         "sort": [
             {sort: sortDir}
         ],
         "query": {
             "bool": {
                 "must": {
-                    'multi_match': {
+                    "multi_match": {
                         "query": user_query,
                         "fields": ["name^100", "shortDescription^50", "longDescription^10", "department"]
                     }
