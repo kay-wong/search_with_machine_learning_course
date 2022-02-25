@@ -41,8 +41,10 @@ shift $((OPTIND -1))
 # $ALL_CLICKS_FILE -- The set of all clicks
 cd $SOURCE_DIR
 mkdir -p $OUTPUT_DIR
+# outputs parameters to metadata file for ML model version control
 echo "ltr-end-to-end.sh $SOURCE_DIR $WEEK $OUTPUT_DIR $ALL_CLICKS_FILE $SYNTHESIZE $CLICK_MODEL run at "  `date` > $OUTPUT_DIR/meta.txt
 set -x
+# docker launches and configures this plugin, this step enables it, to enable storage of data into LTR models
 python $WEEK/utilities/build_ltr.py --create_ltr_store
 if [ $? -ne 0 ] ; then
   exit 2
@@ -65,6 +67,7 @@ if [ $? -ne 0 ] ; then
   exit 2
 fi
 # Create the actual training set from the impressions set
+# send all queries from training data to opensearch and get back values for each doc with features from ltr_featureset.json (eg. stat features); captured into csv flle 
 python $WEEK/utilities/build_ltr.py --ltr_terms_field sku --output_dir "$OUTPUT_DIR" --create_xgb_training -f $WEEK/conf/ltr_featureset.json --click_model $CLICK_MODEL $DOWNSAMPLE
 if [ $? -ne 0 ] ; then
   exit 2
