@@ -22,7 +22,7 @@ rng = np.random.default_rng(123456)
 # Given a click model type, transform the "grade" into an appropriate value between 0 and 1, inclusive
 # This operates on the data frame and adds a "grade" column
 #
-def apply_click_model(data_frame, click_model_type="heuristci", downsample=True):
+def apply_click_model(data_frame, click_model_type="heuristic", downsample=True):
     if click_model_type == "binary":
         print("Binary click model") # if we have at least one click, count it as relevant
         data_frame["grade"] = data_frame["clicks"].apply(lambda x: binary_func(x))
