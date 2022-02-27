@@ -27,8 +27,8 @@ def create_rescore_ltr_query(user_query, query_obj, click_prior_query, ltr_model
 
             }
         }
-    if active_features is not None and len(active_features)> 0:
-        query_obj['rescore']['query']['restore_query']['sltr']['active_features'] = active_features
+    if active_features and len(active_features)> 0:
+        query_obj['rescore']['query']['rescore_query']['sltr']['active_features'] = active_features
     return query_obj
 
 # take an existing query and add in an SLTR so we can use it for explains to see how much SLTR contributes
@@ -84,7 +84,7 @@ def create_feature_log_query(query, doc_ids, click_prior_query, featureset_name,
                         "sltr": {
                             "_name": "logged_featureset",
                             "featureset": featureset_name,
-                "store": ltr_store_name,
+                            "store": ltr_store_name,
                             "params": {
                                 "keywords": query,
                                 "click_prior_query": click_prior_query

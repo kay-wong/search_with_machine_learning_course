@@ -238,19 +238,15 @@ class DataPrepper:
         query_results = response["hits"]["hits"]
 
         # Loop over the hits structure returned by running `log_query` and then extract out the features from the response per query_id and doc id.  Also capture and return all query/doc pairs that didn't return features
-        # Your structure should look like the data frame below
-        feature_results = {}
-        feature_results["doc_id"] = []  # capture the doc id so we can join later
-        feature_results["query_id"] = []  # ^^^
-        feature_results["sku"] = []
-        feature_results["salePrice"] = []
-        feature_results["name_match"] = []
+        feature_results = []
         for res in query_results:
-            feature_results["doc_id"].append(res['_id'])  # capture the doc id so we can join later
-            feature_results["query_id"].append(query_id)
-            feature_results["sku"].append(res['_id'])  # ^^^
-            feature_results["salePrice"].append(float(res['_source']['salePrice'][0]))
-            feature_results["name_match"].append([e for e in res['fields']['_ltrlog'][0]['log_entry'] if e['name']=='name_match'][0].get('value', 0))
+            feature_res = {feature.get("name"): feature.get("value", 0)
+                            for feature in res["fields"]["_ltrlog"][0]["log_entry"]}
+            feature_res["doc_id"] = res['_id']    # capture the doc id so we can join later
+            feature_res["query_id"] = query_id
+            feature_res["sku"] = res['_id']  # ^^^
+            feature_res["salePrice"] = float(res['_source']['salePrice'][0])
+            feature_results.append(feature_res)
         frame = pd.DataFrame(feature_results)
         return frame.astype({'doc_id': 'int64', 'query_id': 'int64', 'sku': 'int64'})
         # IMPLEMENT_END
