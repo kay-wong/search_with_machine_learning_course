@@ -74,14 +74,15 @@ for filename in os.listdir(directory):
                     product_dict['name'] = transform_name(name)
                     products_list.append(product_dict)
                      
-print("Filtering min products per category results")
+df = pd.DataFrame(products_list)                     
 if min_products > 0:
-    df = pd.DataFrame(products_list)
+    print("Filtering min products per category results")
     gb = df.groupby('category')
     df_filtered = gb.filter(lambda x: x['category'].count() > min_products)
     print("{} products filtered".format(len(df)-len(df_filtered)))
+    df = df_filtered
     
 print("Writing results to %s" % output_file)
 with open(output_file, 'w') as output:
-    for index, row in df_filtered.iterrows():
+    for index, row in df.iterrows():
         output.write("__label__%s %s\n" % (row['category'], row['name']))
